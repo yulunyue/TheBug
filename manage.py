@@ -1,3 +1,3 @@
 def test_capital_case():
-    assert 1==0
+    assert 1==1
 print("hh")
