@@ -296,6 +296,10 @@ class Program(Base):
                 dt[d] = pm
             time.sleep(0.01)
 
+class Pack:
+    def __init__(self):
+        
+
 
 if __name__ == "__main__":
     Program(sys.argv[1]).run()
