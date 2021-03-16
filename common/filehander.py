@@ -1,3 +1,5 @@
+import zipfile
+import tarfile
 from threading import Thread
 import time
 from watchdog.events import *
@@ -5,13 +7,19 @@ from watchdog.observers import Observer
 import json
 import os
 from . import function
+import re
 
 
 class JsonConfig(object):
-    def __init__(self, path):
-        self._tm = os.path.getmtime(path)
+    _tm = None
+
+    def __init__(self, path, **kwargs):
+        if path[0] == "/" or 1:
+            self._path = path
+        else:
+            self._path = os.getcwd().replace("\\", "/")+"/"+path
+
         self._dict = dict()
-        self._path = path
         for key in dir(self.__class__):
             value = getattr(self.__class__, key)
             if key[0] != "_":
@@ -21,14 +29,19 @@ class JsonConfig(object):
             with open(self._path, "r") as f:
                 d = json.loads(f.read())
                 self._dict.update(d)
+                self._dict.update(kwargs)
         except:
             function.write(self._path, self._dict)
+        self._tm = os.path.getmtime(path)
 
     def __setattr__(self, key, value):
-        if key[0] != "_" and value != self._dict[key]:
-            self._dict[key] = value
-            function.write(self._path, self._dict)
-            self._tm = os.path.getmtime(self._path)
+
+        if key[0] != "_":
+            if value != self._dict[key]:
+                self._dict[key] = value
+                function.write(self._path, self._dict)
+                self._tm = os.path.getmtime(self._path)
+                print("write", self._path, key, value, self._dict)
         super().__setattr__(key, value)
 
     def _async_read(self):
@@ -68,6 +81,50 @@ class FileEventHandler(FileSystemEventHandler):
         )
 
 
+class FileSystem():
+    def __init__(self, src_path, check=None, filter=None):
+        if isinstance(src_path, str):
+            self._src_path = [src_path]
+        else:
+            self._src_path = src_path
+        if check is None:
+            check = []
+        if filter is None:
+            filter = []
+        self._check = [re.compile(d) for d in check]
+        self._filter = [re.compile(d) for d in filter]
+
+    def files(self):
+        rt = []
+        for d in self._src_path:
+            self.file_one(d, rt)
+        return rt
+
+    def check(self, p):
+        for c in self._check:
+            if not c.match(p):
+                return False
+        for c in self._filter:
+            if c.match(p):
+                return False
+        return True
+
+    def file_one(self, d, rt):
+        if self.check(d):
+            if os.path.isfile(d):
+                rt.append(d)
+            else:
+                for p in os.listdir(d):
+                    self.file_one(d+"/"+p, rt)
+        return rt
+
+    def zip(self, dstfile, p):
+        zip_file = zipfile.ZipFile(dstfile, mode='w')
+        for d in self.files():
+            zip_file.write(d, p(d))
+        zip_file.close()
+
+
 class FileWatch:
     _on_file_change = None
 
@@ -83,4 +140,7 @@ class FileWatch:
 
 
 if __name__ == "__main__":
-    pass
+    FileSystem(
+        "d:/project/blj/dist",
+        filter=[r".*\.bak"]
+    ).zip("temp/blj.zip", lambda v: v.replace("d:/project/blj/dist/", ""))

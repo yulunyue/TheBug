@@ -1,3 +1,5 @@
+from typing import List
+from .filehander import JsonConfig
 import time
 import os
 import json
@@ -296,10 +298,86 @@ class Program(Base):
                 dt[d] = pm
             time.sleep(0.01)
 
-class FilePack:
-    def __init__(self):
-        
+
+class ShellConfig(JsonConfig):
+    cmd = ""
+    chdir = ""
+    move_suffix = ".bak"
+    run_t = 0
+    files = [
+
+    ]
+
+
+class FileBak:
+    def __init__(self, name, config):
+        self.config: ShellConfig = config
+        self._path = name
+        self._old_cmd = os.getcwd()
+
+    def test(self):
+        os.chdir(self.config.chdir)
+        v = os.system(self.config.cmd)
+        os.chdir(self._old_cmd)
+        return v
+
+    def check(self):
+        if os.path.isdir(self._path):
+            for d in os.listdir(self._path):
+                FileBak(self._path+'/'+d, self.config).check()
+            return
+        if self._path in self.config.files:
+            return
+        if os.path.exists(self._path+self.config.move_suffix):
+            os.remove(self._path+self.config.move_suffix)
+        if self.config.move_suffix is self._path:
+            return
+        os.rename(self._path, self._path+self.config.move_suffix)
+        v = self.test()
+        if v != 0:
+            if os.path.isfile(self._path):
+                self.config.file.append(self._path)
+            os.rename(self._path+self.config.move_suffix, self._path)
+            if self.test() != 0:
+                raise Exception("error", self._path)
+
+    def repair(self):
+        pass
+        # if self._path[-4:] == self.config.move_suffix:
+        #     p = self._path[:-4]
+        #     # print(self._path, p)
+        #     if not os.path.exists(p):
+        #         print("repair", self._path, p)
+        #         os.rename(self._path, p)
+        # else:
+        #     p = self._path
+        # if os.path.isdir(p):
+        #     for d in os.listdir(p):
+        #         FileBak(p+'/'+d, self._p).repair()
+
+
+class SheelRun:
+    def __init__(self, p, **kwargs):
+        self.config = ShellConfig(p, **kwargs)
+
+    def run(self, cmd):
+
+        self.config.cmd = cmd
+        for d in os.listdir(self.config.chdir):
+            FileBak(self.config.chdir+"/"+d, self.config).check()
 
 
 if __name__ == "__main__":
-    Program(sys.argv[1]).run()
+    b = SheelRun("temp/bljshell.json", chdir="D:/project/blj/dist")
+    begin_t = time.time()
+    try:
+        b.config.files.append("123")
+        # b.run(
+        #     "blj.exe blj.py dev"
+        # )
+    except Exception as e:
+        print("eror", e)
+
+    print("finish", len(b.config.files))
+    b.config.run_t = time.time()-begin_t
+    # Program(sys.argv[1]).run()

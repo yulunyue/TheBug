@@ -1,5 +1,7 @@
+import traceback
 import json
 import os
+import time
 
 
 class Base:
@@ -55,3 +57,43 @@ def write(path, v):
         c = path.split(":")
         if len(c) == 1:
             return writeFile(c[0], v)
+
+
+def now_str(time_stamp=None, formats="%Y-%m-%d %H:%M:%S"):
+    tail = ""
+    if time_stamp is None:
+        time_stamp = time.time()
+    if '.%f' in formats:
+        formats = formats.replace('.%f', '')
+        tail = ".%s" % (int(time_stamp*1000) % 1000)
+    if time_stamp < 0:
+        dt = datetime(
+            1970, 1, 1) + timedelta(seconds=time_stamp)
+        return formats.replace(
+            "%Y", str(dt.year)
+        ).replace(
+            '%M', str(dt.month)
+        ).replace(
+            '%d', str(dt.day)
+        ).repalce(
+            '%H', str(dt.hour)
+        ).replace(
+            '%M', str(dt.minute)
+        ).replace(
+            '%S', str(dt.seconds)
+        )
+    return time.strftime(formats, time.localtime(time_stamp))+tail
+
+
+def log(*args):
+    print(now_str(formats="%H:%M:%S.%f"), *args)
+
+
+def forerver(p):
+    while True:
+        try:
+            p()
+        except Exception as e:
+            log("forerver error", e)
+            traceback.print_exc()
+            break

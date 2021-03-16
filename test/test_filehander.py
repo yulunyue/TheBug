@@ -1,4 +1,4 @@
-from common.filehandel import FileWatch, JsonConfig
+from common.filehander import FileWatch, JsonConfig
 from common import function
 import time
 import json
@@ -6,7 +6,7 @@ import json
 
 class TestFileHander:
     def test_watch(self):
-        path = "test/text.text"
+        path = "temp/text.text"
         pathwatch = [None]
 
         def v(event):
@@ -22,10 +22,14 @@ class TestFileHander:
 
         class Tmp(JsonConfig):
             a = 0
+            b = []
         c = Tmp(p)
+        c.b.append("12")
         c.a = 1
+        time.sleep(0.5)
         with open(p, "r") as f:
             d = json.loads(f.read())
             assert d['a'] == 1
+            assert d["b"][0] == "12"
         function.write(p, json.dumps(dict(a=3)))
         assert c.a == 3

@@ -7,6 +7,7 @@ import time
 import asyncio
 import sys
 import traceback
+from .ftp import FtpServer, FtpClient
 
 
 class IoManage(function.Base):
@@ -15,33 +16,34 @@ class IoManage(function.Base):
 
     def __init__(self, on_read=None):
         self.clients = {}
-        self.client_array=[]
+        self.client_array = []
         self.read = on_read
         self._on_close_connection = None
         self._on_new_connection = None
+
     def __new__(cls):
         if cls._ioinstance:
             return cls._ioinstance
-        cls._ioinstance=super().__new__(cls)
+        cls._ioinstance = super().__new__(cls)
         return cls._ioinstance
-    def append_one(self,cls,*args,**kwargs):
+
+    def append_one(self, cls, *args, **kwargs):
         if isinstance(cls, str):
             cls = self.clsMap[cls]
-            v = cls(*args,**kwargs)
+            v = cls(*args, **kwargs)
         else:
-            v=cls
-        v.p=self
-        v.index=len(self.client_array)
+            v = cls
+        v.p = self
+        v.index = len(self.client_array)
         self.client_array.append(v)
         if v.key is None:
-            v.key = "%s_%s"%(v.proto,len(self.client_array))
-        self.clients[v.key]=v
+            v.key = "%s_%s" % (v.proto, len(self.client_array))
+        self.clients[v.key] = v
         return v
 
     def remove(self, io):
         del self.clients[io.key]
         self.client_array.pop(io.index)
-
 
     async def server_forever(self, loopt=0.01):
         while True:
@@ -53,8 +55,9 @@ class IoManage(function.Base):
     def run(self):
         asyncio.run(self.server_forever())
         return self
+
     def run_by_thread(self):
-        _thread.start_new_thread(self.run,())
+        _thread.start_new_thread(self.run, ())
         return self
     # def dump(self):
     #     node = {}
@@ -83,21 +86,23 @@ class IoManage(function.Base):
         if self._on_close_connection:
             self._on_close_connection(tp, *args)
 
-    def writeData(self,key,data):
+    def writeData(self, key, data):
         self.clients[key].writeData(data)
 
-        
+
 class IoInstance:
     p: IoManage = None
     proto = ''
-    index=0
-    def __init__(self,  key=None, hock_read=None,redirectList=None,sock=None):
+    index = 0
+
+    def __init__(self,  key=None, hock_read=None, redirectList=None, sock=None):
         self.key = key
         self.redirectList = redirectList or []
-        self.hock_read=hock_read
+        self.hock_read = hock_read
         self.buff = None
         self.connectnum = 0
-        self.sock=sock
+        self.sock = sock
+
     def getdefaultkey(self):
         f = "%s:%s:%s"
         if self.serverorclient == 0:
@@ -132,14 +137,16 @@ class IoInstance:
     def write(self, data):
         pass
         # print('write',self.key,data)
-    def writeData(self,data):
-        if isinstance(data,str):
-            data=data.encode()
+
+    def writeData(self, data):
+        if isinstance(data, str):
+            data = data.encode()
         return self.write(data)
+
     async def run(self):
         pass
 
-    def error(self,v=True):
+    def error(self, v=True):
         if v:
             self.sock = None
         # if 'io.error' in sys.argv:
@@ -162,16 +169,15 @@ class IoInstance:
         # self.p.write(self.redirectList, data)
 
 
-
-
-
 class TcpS(IoInstance):
     proto = 'tcps'
-    def __init__(self,srcip,srcport,**kwargs):
-        self.srcip=srcip
-        self.srcport=srcport
-        self.childs=[]
+
+    def __init__(self, srcip, srcport, **kwargs):
+        self.srcip = srcip
+        self.srcport = srcport
+        self.childs = []
         super().__init__(**kwargs)
+
     async def run(self):
         if self.sock is None:
             if self.connectnum % 100 != 0:
@@ -189,10 +195,10 @@ class TcpS(IoInstance):
         srcip, srcport = w.get_extra_info('peername')
         self.p.on_new_connection("tcp", srcip, srcport)
         try:
-            c = TcpC(self.srcip,self.srcport,srcip=srcip,srcport=srcport,hock_read=self.hock_read,
-                            sock=(r, w),
-                            key="%s_c%s" % (self.key, len(self.childs)),
-                            redirectList=self.redirectList)
+            c = TcpC(self.srcip, self.srcport, srcip=srcip, srcport=srcport, hock_read=self.hock_read,
+                     sock=(r, w),
+                     key="%s_c%s" % (self.key, len(self.childs)),
+                     redirectList=self.redirectList)
             self.p.append_one(c)
             self.childs.append(c)
             print('on_tcp_concet', srcip, srcport)
@@ -200,9 +206,6 @@ class TcpS(IoInstance):
         except Exception as e:
             self.error()
         # self.childs.append(c)
-       
-       
-        
 
     def write(self, data):
         i = 0
@@ -220,12 +223,14 @@ class TcpS(IoInstance):
 
 class TcpC(IoInstance):
     proto = 'tcpc'
-    def __init__(self,dstip,dstport,srcip="127.0.0.1",srcport=0,**kwargs):
-        self.srcip=srcip
-        self.srcport=srcport
-        self.dstip=dstip
-        self.dstport=dstport
+
+    def __init__(self, dstip, dstport, srcip="127.0.0.1", srcport=0, **kwargs):
+        self.srcip = srcip
+        self.srcport = srcport
+        self.dstip = dstip
+        self.dstport = dstport
         super().__init__(**kwargs)
+
     async def asyncreadrw(self, r, w):
         try:
             data = await r.read(2048)
@@ -269,8 +274,10 @@ class TcpC(IoInstance):
                 self.error()
                 w.close()
                 return False
+
     def __str__(self):
-        return 'tcpc:%s->%s,%s,%s'%(self.key,self.dstip,self.dstport,self.srcport)
+        return 'tcpc:%s->%s,%s,%s' % (self.key, self.dstip, self.dstport, self.srcport)
+
 
 class UdpS(IoInstance):
     proto = 'udps'
@@ -374,4 +381,6 @@ class Com(IoInstance):
     def getdefaultkey(self):
         return "%s:%s" % (self.__class__.__name__, self.srcip)
 
-IoManage.clsMap = dict(TcpC=TcpC, TcpS=TcpS, UdpS=UdpS, UdpC=UdpC,Com=Com)
+
+IoManage.clsMap = dict(TcpC=TcpC, TcpS=TcpS, UdpS=UdpS, UdpC=UdpC,
+                       Com=Com, ftpserver=FtpServer, ftpclient=FtpClient)

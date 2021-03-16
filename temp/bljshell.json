@@ -1,0 +1,6 @@
+{
+    "chdir": "D:/project/blj/dist",
+    "cmd": "blj.exe test.py",
+    "files": [],
+    "move_suffix": ".bak"
+}
