@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 c/**
 **/node_modules/**
+temp
+.vscode
+.github
