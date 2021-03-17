@@ -303,7 +303,7 @@ class ShellConfig(JsonConfig):
     cmd = ""
     chdir = ""
     move_suffix = ".bak"
-    run_t = 0
+    run_t = ""
     files = [
 
     ]
@@ -341,20 +341,6 @@ class FileBak:
             if self.test() != 0:
                 raise Exception("error", self._path)
 
-    def repair(self):
-        pass
-        # if self._path[-4:] == self.config.move_suffix:
-        #     p = self._path[:-4]
-        #     # print(self._path, p)
-        #     if not os.path.exists(p):
-        #         print("repair", self._path, p)
-        #         os.rename(self._path, p)
-        # else:
-        #     p = self._path
-        # if os.path.isdir(p):
-        #     for d in os.listdir(p):
-        #         FileBak(p+'/'+d, self._p).repair()
-
 
 class SheelRun:
     def __init__(self, p, **kwargs):
@@ -371,13 +357,14 @@ if __name__ == "__main__":
     b = SheelRun("temp/bljshell.json", chdir="D:/project/blj/dist")
     begin_t = time.time()
     try:
-        b.config.files.append("123")
-        # b.run(
-        #     "blj.exe blj.py dev"
-        # )
+        # b.config.files.append("123")
+        b.run(
+            "blj.exe blj.py dev"
+        )
     except Exception as e:
-        print("eror", e)
 
+        print("eror", e)
+    time.sleep(0.01)
     print("finish", len(b.config.files))
     b.config.run_t = time.time()-begin_t
     # Program(sys.argv[1]).run()

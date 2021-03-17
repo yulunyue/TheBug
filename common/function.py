@@ -47,7 +47,10 @@ def writeFile(p, v):
     if not os.path.exists(p):
         mkfiledir(p)
     with open(p, "wb") as f:
-        f.write(v.encode())
+        if isinstance(v, str):
+            f.write(v.encode())
+        else:
+            f.write(v)
 
 
 def write(path, v):

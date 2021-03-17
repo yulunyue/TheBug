@@ -14,7 +14,7 @@ class JsonConfig(object):
     _tm = None
 
     def __init__(self, path, **kwargs):
-        if path[0] == "/" or 1:
+        if path[0] == "/":
             self._path = path
         else:
             self._path = os.getcwd().replace("\\", "/")+"/"+path
@@ -41,7 +41,7 @@ class JsonConfig(object):
                 self._dict[key] = value
                 function.write(self._path, self._dict)
                 self._tm = os.path.getmtime(self._path)
-                print("write", self._path, key, value, self._dict)
+                # print("write", self._path, key, value, self._dict)
         super().__setattr__(key, value)
 
     def _async_read(self):
@@ -110,6 +110,9 @@ class FileSystem():
         return True
 
     def file_one(self, d, rt):
+        if isinstance(d, FileSystem):
+            rt += d.files()
+            return
         if self.check(d):
             if os.path.isfile(d):
                 rt.append(d)
@@ -123,6 +126,25 @@ class FileSystem():
         for d in self.files():
             zip_file.write(d, p(d))
         zip_file.close()
+
+    def pyinstaller(self, p, hide_cmd=True, icon="icon.ico"):
+        name = p.replace(".py", "")
+        aim = "dist/%s/%s.exe" % (name, name)
+        if not os.path.exists(aim):
+            cmds = ["pyinstaller"]
+            if not hide_cmd:
+                cmds.append("-w")
+            if icon:
+                cmds.append(icon)
+            cmds.append(p)
+            os.system(" ".join(cmds))
+
+        self.copyfiles("dist/%s" % name)
+
+    def copyfiles(self, dist):
+        for d in self.files():
+            with open(d, "rb") as f:
+                function.writeFile(dist+"/"+d, f.read())
 
 
 class FileWatch:
